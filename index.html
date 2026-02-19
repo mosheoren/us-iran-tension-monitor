@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>US–Iran Tension Monitor</title>
+  <style>
+    :root { --bg:#0b1020; --card:#121a33; --text:#e7ecff; --muted:#aab3d6; --line:#24305c; }
+    *{ box-sizing:border-box; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    body{ margin:0; background:linear-gradient(180deg, #070b17, var(--bg)); color:var(--text); }
+    .wrap{ max-width:1100px; margin:0 auto; padding:22px; }
+    header{ display:flex; gap:14px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; }
+    h1{ margin:0; font-size:22px; letter-spacing:0.2px; }
+    .sub{ margin-top:6px; color:var(--muted); font-size:13px; line-height:1.4; max-width:820px; }
+    .grid{ display:grid; grid-template-columns: 360px 1fr; gap:16px; margin-top:16px; }
+    @media (max-width: 920px){ .grid{ grid-template-columns:1fr; } }
+    .card{ background:rgba(18,26,51,.78); border:1px solid rgba(36,48,92,.7); border-radius:14px; padding:16px; backdrop-filter: blur(6px); }
+    .bigScore{ display:flex; gap:14px; align-items:center; }
+    .gauge{
+      width:140px; height:140px; border-radius:50%;
+      background: conic-gradient(from 180deg, #2bff88 0deg, #ffd24a 90deg, #ff5b5b 180deg, #6b7cff 360deg);
+      position:relative; overflow:hidden;
+    }
+    .gauge::after{
+      content:""; position:absolute; inset:10px; border-radius:50%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.10), rgba(0,0,0,.0) 40%), #0b1020;
+      border:1px solid rgba(255,255,255,.06);
+    }
+    .needle{
+      position:absolute; left:50%; top:50%;
+      width:2px; height:56px; background:#fff;
+      transform-origin: bottom center;
+      transform: translate(-50%,-100%) rotate(-90deg);
+      filter: drop-shadow(0 0 6px rgba(255,255,255,.35));
+      z-index:2;
+    }
+    .dot{ position:absolute; left:50%; top:50%; width:10px; height:10px; border-radius:50%; background:#fff; transform:translate(-50%,-50%); z-index:3; }
+    .scoreText .num{ font-size:44px; font-weight:800; line-height:1; }
+    .scoreText .band{ margin-top:6px; font-weight:700; }
+    .scoreText .meta{ margin-top:10px; font-size:12px; color:var(--muted); }
+    .row{ display:flex; justify-content:space-between; gap:10px; align-items:center; }
+    .pill{ font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.12); color:var(--muted); }
+    .indList{ display:flex; flex-direction:column; gap:10px; }
+    .ind{ border:1px solid rgba(36,48,92,.6); border-radius:12px; padding:12px; background:rgba(7,11,23,.35); }
+    .ind h3{ margin:0; font-size:14px; }
+    .ind p{ margin:6px 0 10px; color:var(--muted); font-size:12px; line-height:1.4; }
+    .ctrl{ display:grid; grid-template-columns: 1fr 70px 70px; gap:10px; align-items:center; }
+    input[type="range"]{ width:100%; }
+    input[type="number"]{
+      width:100%; background:#0b1020; color:var(--text);
+      border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:8px;
+    }
+    .footer{ margin-top:16px; color:var(--muted); font-size:12px; line-height:1.5; }
+    a{ color:#b9c6ff; text-decoration:none; }
+    a:hover{ text-decoration:underline; }
+    .smallBtn{
+      cursor:pointer; background:#0b1020; color:var(--text);
+      border:1px solid rgba(255,255,255,.12); border-radius:10px;
+      padding:9px 10px; font-weight:650;
+    }
+    .smallBtn:active{ transform: translateY(1px); }
+    .twoBtn{ display:flex; gap:10px; flex-wrap:wrap; margin-top:10px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>US–Iran Tension Monitor</h1>
+        <div class="sub">
+          Composite score (1–100) built from 10 indicators. This is a methodology-based dashboard (not an official assessment).
+          Update each indicator from credible public sources (official statements + major outlets).
+        </div>
+      </div>
+      <div class="pill" id="lastUpdated">Last updated: —</div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <div class="row">
+          <strong>Composite Risk Score</strong>
+          <span class="pill" id="bandPill">—</span>
+        </div>
+
+        <div class="bigScore" style="margin-top:12px;">
+          <div class="gauge" aria-label="risk gauge">
+            <div class="needle" id="needle"></div>
+            <div class="dot"></div>
+          </div>
+          <div class="scoreText">
+            <div class="num" id="scoreNum">—</div>
+            <div class="band" id="scoreBand">—</div>
+            <div class="meta" id="scoreMeta">Weights are editable in the code.</div>
+          </div>
+        </div>
+
+        <div class="twoBtn">
+          <button class="smallBtn" id="resetBtn">Reset to defaults</button>
+          <button class="smallBtn" id="copyJsonBtn">Copy scores as JSON</button>
+        </div>
+
+        <div class="footer">
+          <div style="margin-top:10px;">
+            Suggested sources to cite on your page:
+            <ul>
+              <li>Official military statements (e.g., CENTCOM). </li>
+              <li>IAEA updates for nuclear monitoring. </li>
+              <li>Major wire services for incident confirmation (e.g., Reuters). </li>
+              <li>Chokepoint risk trackers (e.g., Crisis Group’s Strait of Hormuz trigger list). </li>
+            </ul>
+          </div>
+          <div>
+            If you want, next step is: make a tiny admin panel + store daily scores in a database so you can show 7-day trends.
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="row">
+          <strong>Indicators (1–100)</strong>
+          <span class="pill">10 signals</span>
+        </div>
+
+        <div class="indList" id="indList" style="margin-top:12px;"></div>
+      </section>
+    </div>
+  </div>
+
+<script>
+  // --- CONFIG ---
+  // Weights must sum to 100 for easiest interpretation (but not required).
+  const indicators = [
+    { key:"diplomacy", name:"Diplomacy / Talks", desc:"1=active talks, 100=breakdown + expulsions", weight:12, default:35 },
+    { key:"us_posture", name:"US Force Posture", desc:"Deployments, surge activity, posture changes", weight:12, default:50 },
+    { key:"naval_encounters", name:"Naval Encounters", desc:"Unsafe intercepts, harassment, close approaches", weight:10, default:40 },
+    { key:"chokepoint", name:"Hormuz / Chokepoint Drills", desc:"Closures, live-fire drills near shipping lanes", weight:10, default:55 },
+    { key:"iran_prep", name:"Iran Readiness / Preparations", desc:"Exercise tempo, readiness signals (publicly reported)", weight:10, default:50 },
+    { key:"proxy_incidents", name:"Proxy / Regional Incidents", desc:"Severity + frequency of attacks/strikes", weight:10, default:45 },
+    { key:"nuclear", name:"Nuclear Escalation Signal", desc:"IAEA access issues + enrichment level signals", weight:14, default:60 },
+    { key:"sanctions", name:"Sanctions & Economic Pressure", desc:"New measures, enforcement actions, escalations", weight:8, default:40 },
+    { key:"rhetoric", name:"Official Rhetoric / Threats", desc:"Threat language, red lines, calls for retaliation", weight:6, default:50 },
+    { key:"shipping_risk", name:"Commercial Shipping Risk", desc:"Seizures, rerouting, risk warnings, insurance impact", weight:8, default:55 },
+  ];
+
+  // --- STATE ---
+  let state = Object.fromEntries(indicators.map(x => [x.key, x.default]));
+
+  // --- UI BUILD ---
+  const indList = document.getElementById("indList");
+
+  function buildIndicatorCard(ind){
+    const wrap = document.createElement("div");
+    wrap.className = "ind";
+    wrap.innerHTML = `
+      <h3>${ind.name} <span class="pill" style="float:right;">w=${ind.weight}</span></h3>
+      <p>${ind.desc}</p>
+      <div class="ctrl">
+        <input type="range" min="1" max="100" value="${state[ind.key]}" data-key="${ind.key}">
+        <input type="number" min="1" max="100" value="${state[ind.key]}" data-key="${ind.key}">
+        <div class="pill" id="p_${ind.key}">—</div>
+      </div>
+    `;
+    return wrap;
+  }
+
+  indicators.forEach(ind => indList.appendChild(buildIndicatorCard(ind)));
+
+  // --- HELPERS ---
+  function bandFor(score){
+    if (score < 25) return { band:"Low", pill:"Low" };
+    if (score < 50) return { band:"Elevated", pill:"Elevated" };
+    if (score < 75) return { band:"High", pill:"High" };
+    return { band:"Severe", pill:"Severe" };
+  }
+
+  function computeComposite(){
+    const totalW = indicators.reduce((s,x)=>s+x.weight,0);
+    const sum = indicators.reduce((s,x)=> s + (state[x.key]*x.weight), 0);
+    return Math.round((sum / totalW) * 10) / 10;
+  }
+
+  function setNeedle(score){
+    // Map 1..100 to -90..+90 degrees
+    const deg = -90 + ((score-1) / 99) * 180;
+    document.getElementById("needle").style.transform =
+      `translate(-50%,-100%) rotate(${deg}deg)`;
+  }
+
+  function labelPerIndicator(){
+    indicators.forEach(ind=>{
+      const v = state[ind.key];
+      const el = document.getElementById(`p_${ind.key}`);
+      const b = bandFor(v).band;
+      el.textContent = `${v} • ${b}`;
+    });
+  }
+
+  function render(){
+    const score = computeComposite();
+    document.getElementById("scoreNum").textContent = score.toFixed(1);
+    const b = bandFor(score);
+    document.getElementById("scoreBand").textContent = b.band;
+    document.getElementById("bandPill").textContent = b.pill;
+    setNeedle(score);
+
+    const now = new Date();
+    document.getElementById("lastUpdated").textContent =
+      `Last updated: ${now.toLocaleString()}`;
+
+    labelPerIndicator();
+  }
+
+  // --- EVENTS ---
+  function syncInputs(key, value){
+    state[key] = Math.max(1, Math.min(100, Number(value || 1)));
+    const all = document.querySelectorAll(`[data-key="${key}"]`);
+    all.forEach(el => el.value = state[key]);
+    render();
+  }
+
+  document.addEventListener("input", (e)=>{
+    const key = e.target?.dataset?.key;
+    if (!key) return;
+    syncInputs(key, e.target.value);
+  });
+
+  document.getElementById("resetBtn").addEventListener("click", ()=>{
+    state = Object.fromEntries(indicators.map(x => [x.key, x.default]));
+    indicators.forEach(ind => syncInputs(ind.key, state[ind.key]));
+    render();
+  });
+
+  document.getElementById("copyJsonBtn").addEventListener("click", async ()=>{
+    const payload = {
+      updated_at: new Date().toISOString(),
+      composite: computeComposite(),
+      indicators: state
+    };
+    try{
+      await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+      alert("Copied JSON to clipboard.");
+    }catch(err){
+      alert("Could not copy. Your browser may block clipboard access.");
+    }
+  });
+
+  // First render
+  render();
+</script>
+</body>
+</html>
